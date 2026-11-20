@@ -51,6 +51,16 @@ def ink_h(draw, text, f):
     return bb[3] - bb[1]
 
 
+def ink_bottom(draw, text, f):
+    """Distance from the draw anchor (top of em box) to the ink bottom.
+
+    Use this, not ink_h, for vertical advances: with PIL's default anchor
+    the glyph ink starts below the anchor, so ink_h under-measures the
+    space a headline actually occupies and the next line strikes through it.
+    """
+    return draw.textbbox((0, 0), text, font=f)[3]
+
+
 def line_h(f):
     a, d = f.getmetrics()
     return a + d
@@ -110,10 +120,10 @@ def section_box(draw, x, y, w, h, fill=None, outline=INK, width=2):
 
 # ---------------------------------------------------------------- masthead
 def draw_masthead(draw, y):
-    f = fit_font(draw, "THE WORLD", SERIF_B, 80, CW)
+    f = fit_font(draw, "THE WORLD", SERIF_B, 72, CW)
     tw = draw.textlength("THE WORLD", font=f)
     draw.text(((W - tw) / 2, y), "THE WORLD", font=f, fill=INK)
-    y += ink_h(draw, "THE WORLD", f) + 5
+    y += ink_bottom(draw, "THE WORLD", f) + 4
     dl = font(SANS_B, 14)
     left = "FRIDAY 20 NOVEMBER 2026"
     right = "ONE IMAGE · THE DAY'S NEWS"
@@ -131,7 +141,7 @@ def draw_masthead(draw, y):
 def draw_hero(draw, y):
     x, w, pad = MARGIN, CW, 12
     head_txt = "MYANMAR GUILTY OF GENOCIDE"
-    f_head = fit_font(draw, head_txt, SERIF_B, 48, w - 2 * pad)
+    f_head = fit_font(draw, head_txt, SERIF_B, 44, w - 2 * pad)
     deck = rich_wrap(draw, [(
         "The International Court of Justice rules 9–6: Myanmar committed "
         "genocide against the Rohingya — the first time the court has held a "
@@ -139,13 +149,14 @@ def draw_hero(draw, y):
         "2017 campaign; refugees in Bangladesh cheered.", font(SANS, 16))],
         w - 2 * pad)
     lh = line_h(font(SANS, 16))
-    h = 4 + 17 + 2 + ink_h(draw, head_txt, f_head) + 3 + len(deck) * (lh + 1) + 4
+    head_bot = ink_bottom(draw, head_txt, f_head)
+    h = 3 + 17 + 2 + head_bot + 3 + len(deck) * lh + 3
     section_box(draw, x, y, w, h, fill=PAPER)
-    cy = y + 4
+    cy = y + 3
     cy = label(draw, x + pad, cy, "THE VERDICT  ·  THE HAGUE")
     draw.text((x + pad, cy), head_txt, font=f_head, fill=INK)
-    cy += ink_h(draw, head_txt, f_head) + 3
-    draw_lines(draw, x + pad, cy, deck, lh + 1)
+    cy += head_bot + 3
+    draw_lines(draw, x + pad, cy, deck, lh)
     return y + h
 
 
@@ -160,13 +171,14 @@ def draw_summit(draw, y):
         "after ~70 minutes of closed talks. The Ukraine and Iran wars are not "
         "mentioned.", font(SANS, 16))], w - 2 * pad)
     lh = line_h(font(SANS, 16))
-    h = 4 + 17 + 2 + ink_h(draw, head_txt, f_head) + 2 + len(deck) * (lh + 1) + 4
+    head_bot = ink_bottom(draw, head_txt, f_head)
+    h = 3 + 17 + 2 + head_bot + 2 + len(deck) * lh + 3
     section_box(draw, x, y, w, h, fill=PAPER)
-    cy = y + 4
+    cy = y + 3
     cy = label(draw, x + pad, cy, "THE SUMMIT  ·  SHENZHEN")
     draw.text((x + pad, cy), head_txt, font=f_head, fill=INK)
-    cy += ink_h(draw, head_txt, f_head) + 2
-    draw_lines(draw, x + pad, cy, deck, lh + 1)
+    cy += head_bot + 2
+    draw_lines(draw, x + pad, cy, deck, lh)
     return y + h
 
 
@@ -187,16 +199,16 @@ def draw_markets(draw, y):
         ("US 10-YR", "5.05%", ""),
         ("BRENT", "$89.72", ""),
     ]
-    name_a, val_a, note_a = font(SANS_B, 12), font(SANS_B, 18), font(SANS, 11)
+    name_a, val_a, note_a = font(SANS_B, 12), font(SANS_B, 17), font(SANS, 11)
     name_b, val_b, note_b = font(SANS_B, 11), font(SANS_B, 14), font(SANS, 11)
     hf = font(SANS_B, 14)
     row_a_h = line_h(name_a) + line_h(val_a) + line_h(note_a) - 2
     row_b_h = line_h(name_b) + line_h(val_b) + line_h(note_b) - 2
-    h = 5 + line_h(hf) + 3 + row_a_h + 5 + row_b_h + 5
+    h = 4 + line_h(hf) + 3 + row_a_h + 5 + row_b_h + 4
     draw.rectangle([x, y, x + w, y + h], fill=DARK)
     draw.rectangle([x, y, x + w, y + h], outline=INK, width=2)
     draw.rectangle([x, y, x + w, y + 4], fill=RED)
-    cy = y + 5
+    cy = y + 4
     draw.text((x + pad, cy), "MARKETS", font=hf, fill=RED)
     mw = draw.textlength("MARKETS ", font=hf)
     draw.text((x + pad + mw, cy), "—  GLOBAL SELL-OFF", font=hf, fill=CREAM_TXT)
@@ -238,16 +250,16 @@ def draw_two_col(draw, y, left, right, body_size=14):
         lines = rich_wrap(draw, [(body, body_f)], col_w - 2 * pad)
         cols.append((lab, head, f_head, lines))
     n_lines = max(len(c[3]) for c in cols)
-    head_adv = max(ink_h(draw, c[1], c[2]) for c in cols)
-    h = 4 + 17 + 2 + head_adv + 2 + n_lines * (lh + 1) + 4
+    head_adv = max(ink_bottom(draw, c[1], c[2]) for c in cols)
+    h = 3 + 17 + 2 + head_adv + 2 + n_lines * lh + 3
     for i, (lab, head, f_head, lines) in enumerate(cols):
         cx = x + i * (col_w + gap)
         section_box(draw, cx, y, col_w, h, fill=PAPER)
-        cy = y + 4
+        cy = y + 3
         cy = label(draw, cx + pad, cy, lab)
         draw.text((cx + pad, cy), head, font=f_head, fill=INK)
         cy += head_adv + 2
-        draw_lines(draw, cx + pad, cy, lines, lh + 1)
+        draw_lines(draw, cx + pad, cy, lines, lh)
     return y + h
 
 
@@ -270,14 +282,14 @@ def draw_conflict(draw, y):
         all_lines.append(rich_wrap(draw, [(lead, bold), (rest, reg)],
                                    w - 2 * pad))
     n = sum(len(ls) for ls in all_lines)
-    gaps = 2 * (len(items) - 1)
-    h = 4 + 17 + 2 + n * (lh + 1) + gaps + 4
+    gaps = 1 * (len(items) - 1)
+    h = 3 + 17 + 2 + n * lh + gaps + 3
     section_box(draw, x, y, w, h, fill=PAPER)
-    cy = y + 4
+    cy = y + 3
     cy = label(draw, x + pad, cy, "CONFLICT")
     for ls in all_lines:
-        cy = draw_lines(draw, x + pad, cy, ls, lh + 1)
-        cy += 2
+        cy = draw_lines(draw, x + pad, cy, ls, lh)
+        cy += 1
     return y + h
 
 
@@ -312,18 +324,18 @@ def draw_briefs(draw, y):
          "association, third year running; FIFA ranking 90th.",
          font(SANS, 13))], w - 2 * pad)
     sport_lh = line_h(font(SANS, 13))
-    h = (4 + 17 + 2 + len(all_lines) * (lh + 1) + 3 + 1 + 4
-         + len(sport) * (sport_lh + 1) + 4)
+    h = (3 + 17 + 2 + len(all_lines) * lh + 3 + 1 + 3
+         + len(sport) * sport_lh + 3)
     section_box(draw, x, y, w, h, fill=PAPER)
-    cy = y + 4
+    cy = y + 3
     cy = label(draw, x + pad, cy, "WORLD BRIEFS")
     for ln in all_lines:
         draw_line(draw, x + pad, cy, ln)
-        cy += lh + 1
+        cy += lh
     cy += 2
     draw.line([x + pad, cy, x + w - pad, cy], fill=RED, width=1)
-    cy += 5
-    draw_lines(draw, x + pad, cy, sport, sport_lh + 1)
+    cy += 3
+    draw_lines(draw, x + pad, cy, sport, sport_lh)
     return y + h
 
 
